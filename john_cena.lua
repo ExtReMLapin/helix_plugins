@@ -51,9 +51,9 @@ local playerWeight = 70 -- kg
 -- any object heavier than 50% of the weight of the player will not absorb damages
 local offsetWeightObject = playerWeight
 
-function PLUGIN:GetFallDamage(ply, speed)
-
-	local damage = (speed - 580) * (100 / 444)
+function PLUGIN:EntityTakeDamage(ply, dmgInfo)
+	if not ply:IsPlayer() then return end
+	if not dmgInfo:IsFallDamage() then return end
 
 	local tr = util.TraceHull({
 			start = ply:GetPos(),
@@ -70,16 +70,14 @@ function PLUGIN:GetFallDamage(ply, speed)
 	local class = hitEntity:GetClass()
 	if not self.classes[class] then return end
 
-	if not self.props[hitEntity:GetModel()] then return damage end
+	if not self.props[hitEntity:GetModel()] then return end
 	local phys = hitEntity:GetPhysicsObject()
 	if not phys then return end
 	local entMass = phys:GetMass()
 
-	if (offsetWeightObject < entMass) then
-		return damage
-	end
+	if (offsetWeightObject < entMass) then return end
 
 	hitEntity:Fire("Break", "", 0);
 
-	return damage * math.Remap(entMass, 0, offsetWeightObject, 1, 0.5)
+	dmgInfo:ScaleDamage( math.Remap(entMass, 0, offsetWeightObject, 1, 0.5))
 end
