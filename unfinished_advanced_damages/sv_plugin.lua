@@ -29,8 +29,10 @@ local function overrideHurtNoise(ply, type)
 	local sound = table.Random(voices[type])
 
 	hook.Add("GetPlayerPainSound", "nextFrameFix" .. id, function(client)
-		if client == ply then return sound end
-		hook.Remove("GetPlayerPainSound", "nextFrameFix" .. id)
+		if client == ply then
+			hook.Remove("GetPlayerPainSound", "nextFrameFix" .. id)	
+			return sound
+		end
 	end)
 end
 
