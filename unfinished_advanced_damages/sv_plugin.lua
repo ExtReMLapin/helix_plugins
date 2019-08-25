@@ -5,7 +5,7 @@ local RightmaxFeetAngle = -LeftmaxFeetAngle
 
 local minTraceVector = Vector(-18, -18, 0)
 local maxTraceVector = Vector(18, 18, 15)
-
+local playerMeta = FindMetaTable("Player")
 
 local voices = {}
 voices.leg = {"vo/npc/male01/myleg01.wav", "vo/npc/male01/myleg02.wav"}
@@ -24,18 +24,6 @@ DMG_BUCKSHOT,
 DMG_SNIPER,
 DMG_MISSILEDEFENSE}
 
-
-
-
-
-
-
-
-
-
-
-
-
 local function overrideHurtNoise(ply, type)
 	local id = ply:SteamID64()
 	local sound = table.Random(voices[type])
@@ -44,20 +32,42 @@ local function overrideHurtNoise(ply, type)
 		if client == ply then return sound end
 		hook.Remove("GetPlayerPainSound", "nextFrameFix" .. id)
 	end)
-
-	-- it should never happen but whatever
-	timer.Simple(0.1, function()
-		hook.Remove("GetPlayerPainSound", "nextFrameFix" .. id)
-	end)
 end
 
-function PLUGIN:PlayerLoadedCharacter(client, character)
+
+function playerMeta:ApplyAdvancedDamagesModifiers(character)
+	local mult = (100-ix.config.Get("percentageSlowDownPerBrokenLeg")) / 100
+	if character:GetBrokenRightLeg() == true then
+		self:UpdateWalkSpeedModifier("advDmgRightLeg", ix.plugin.list.runspeed.ModifierTypes.MULT, mult, true)
+		self:UpdateRunSpeedModifier("advDmgRightLeg", ix.plugin.list.runspeed.ModifierTypes.MULT, mult, true)
+	else
+		self:RemoveWalkSpeedModifier("advDmgRightLeg", true)
+		self:RemoveRunSpeedModifier("advDmgRightLeg", true)
+	end
+
+	if character:GetBrokenLeftLeg() == true then
+		self:UpdateWalkSpeedModifier("advDmgLeftLeg", ix.plugin.list.runspeed.ModifierTypes.MULT, mult, true)
+		self:UpdateRunSpeedModifier("advDmgLeftLeg", ix.plugin.list.runspeed.ModifierTypes.MULT, mult, true)
+	else
+		self:RemoveWalkSpeedModifier("advDmgLeftLeg", true)
+		self:RemoveRunSpeedModifier("advDmgLeftLeg", true)
+	end
+
+	self:UpdateAdvancedRunSpeed()
+	self:UpdateAdvancedWalkSpeed()
+
+
+end
+
+
+
+function PLUGIN:PostPlayerLoadout(client)
+	local character = client:GetCharacter()
+	client:ApplyAdvancedDamagesModifiers(character)
 end
 
 function PLUGIN:EntityTakeDamage(entity, dmgInfo)
 	if not entity:IsPlayer() then return end
-
-	--local dmgPos = dmgInfo:GetDamagePosition()
 	if dmgInfo:IsFallDamage() then
 		dmgInfo:ScaleDamage(ix.config.Get("fallDamageScale"))
 		local amount = dmgInfo:GetDamage()
@@ -76,8 +86,9 @@ function PLUGIN:EntityTakeDamage(entity, dmgInfo)
 		local leftLegPercentage = math.max(0, math.Remap(feetAngle, 0, LeftmaxFeetAngle, 0.5, 1))
 		local rightLegDamage = rightLegPercentage * amount
 		local leftLegDamage = leftLegPercentage * amount
-		local brokenRightLeg = entity:GetCharacter():GetBrokenRightLeg()
-		local brokenLeftLeg = entity:GetCharacter():GetBrokenLeftLeg()
+		local character = entity:GetCharacter()
+		local brokenRightLeg = character:GetBrokenRightLeg()
+		local brokenLeftLeg = character:GetBrokenLeftLeg()
 		local brokenLegMult = ix.config.Get("damageOnBokenMemberMult")
 
 		if brokenRightLeg == true then
@@ -91,17 +102,20 @@ function PLUGIN:EntityTakeDamage(entity, dmgInfo)
 		local brokeleg = false
 
 		if rightLegDamage >= ix.config.Get("DamageBreakLeg") then
-			entity:GetCharacter():SetBrokenRightLeg(true)
+			character:SetBrokenRightLeg(true)
 			brokeleg = true
 		end
 
 		if leftLegDamage >= ix.config.Get("DamageBreakLeg") then
-			entity:GetCharacter():SetBrokenLeftLeg(true)
+			character:SetBrokenLeftLeg(true)
 			brokeleg = true
 		end
 
-		if brokeleg == true and ix.config.Get("damagesNoisesAndVoices") == true then
-			overrideHurtNoise(entity, "leg")
+		if brokeleg == true then
+			entity:ApplyAdvancedDamagesModifiers(character)
+			if ix.config.Get("damagesNoisesAndVoices") == true then
+				overrideHurtNoise(entity, "leg")
+			end
 		end
 	end
 end
@@ -142,9 +156,7 @@ function PLUGIN:ScalePlayerDamage(ply, hitgroup, dmgInfo)
 			--needs to be fixed
 		end
 	elseif hitgroup == HITGROUP_HEAD then
-		print("pre", dmgInfo:GetDamage())
 		dmgInfo:ScaleDamage(ix.config.Get("headshotDamageScale"))
-		print(dmgInfo:GetDamage())
 		if character:GetBrainTrauma() == true then
 			dmgInfo:ScaleDamage(ix.config.Get("damageOnBokenMemberMult"))
 		elseif dmgInfo:GetDamage() >= ix.config.Get("headDamageBrainTrauma") then
@@ -161,17 +173,19 @@ function PLUGIN:ScalePlayerDamage(ply, hitgroup, dmgInfo)
 					dmgInfo:ScaleDamage(brokenLegMult)
 				else
 					character:SetBrokenRightLeg(true)
+					ply:ApplyAdvancedDamagesModifiers(character)
 				end
 			else
 				if character:GetBrokenLeftLeg() == true then
 					dmgInfo:ScaleDamage(brokenLegMult)
 				else
 					character:SetBrokenLeftLeg(true)
+					ply:ApplyAdvancedDamagesModifiers(character)
 				end
 			end
 
 			if ix.config.Get("damagesNoisesAndVoices") == true then
-				overrideHurtNoise(ply)
+				overrideHurtNoise(ply, "leg")
 			end
 		else
 			if HITGROUP_RIGHTLEG then

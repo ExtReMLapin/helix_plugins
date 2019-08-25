@@ -5,7 +5,7 @@ PLUGIN.name = "Advanced damages"
 PLUGIN.author = "ExtReM Lapin"
 PLUGIN.description = "New damage system, broken legs, headshots etc"
 
-
+if not ix.plugin.Get("runspeed") then ErrorNoHalt("The plugin runspeed is missing") end
 
 ix.config.Add("fallDamageScale", 2, "The fall damages multiplier scale", nil, {
 	data = {min = 0.1, max = 10, decimals = 1},
@@ -45,6 +45,11 @@ ix.config.Add("damagesNoisesAndVoices", true, "Make the player talk or scream wh
 	category = "Advanced Damages"
 })
 
+ix.config.Add("percentageSlowDownPerBrokenLeg", 30, "By how much percent we should reduce the player speed for each broken leg. (50 >= can't move with both legs broken)", nil, {
+	data = {min = 0, max = 80, decimals = 0},
+	category = "Advanced Damages"
+})
+
 ix.char.RegisterVar("brokenLeftLeg", {
 	field = "brokenLeftLeg",
 	fieldType = ix.type.bool,
@@ -79,9 +84,6 @@ ix.char.RegisterVar("brainTrauma", {
 	default = false,
 	isLocal = false,
 })
-
-
-
 
 ix.util.Include("sv_plugin.lua")
 ix.util.Include("cl_plugin.lua")
