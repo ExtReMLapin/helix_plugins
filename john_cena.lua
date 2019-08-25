@@ -47,7 +47,8 @@ PLUGIN.classes = {
 
 local offsetVector = Vector(0, 0, 15)
 local playerWeight = 70 -- kg
-
+local vectorMin = Vector(-18, -18, 0)
+local vectorMax = Vector(18, 18, 15)
 -- any object heavier than 50% of the weight of the player will not absorb damages
 local offsetWeightObject = playerWeight
 
@@ -59,8 +60,8 @@ function PLUGIN:EntityTakeDamage(ply, dmgInfo)
 			start = ply:GetPos(),
 			endpos = ply:GetPos() - offsetVector,
 			filter = ply,
-			mins = Vector(-18, -18, 0),
-			maxs = Vector(18, 18, 15)
+			mins = vectorMin,
+			maxs = vectorMax
 		})
 	if not tr.Hit or not tr.HitNonWorld then
 		return
