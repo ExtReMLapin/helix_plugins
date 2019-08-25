@@ -138,7 +138,7 @@ function PLUGIN:RecalcSpeed(client, walk)
 
 end
 
-function PLUGIN:PostPlayerLoadout(client)
+function PLUGIN:PlayerLoadout(client)
 	client.SpeedModifiers = {
 		walk = {
 			base = ix.config.Get("walkSpeed")
